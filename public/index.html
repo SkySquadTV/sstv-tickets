@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSTV Tail Light Tickets Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: transparent;
+      color: #ffffff;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #pillAnchor {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+    }
+
+    /* Optional positioning via URL query (?pos=top-right, ?pos=bottom-left, etc.) */
+    #pillAnchor.top-right { left: auto; right: 30px; }
+    #pillAnchor.bottom-left { top: auto; bottom: 30px; left: 30px; }
+    #pillAnchor.bottom-right { top: auto; bottom: 30px; left: auto; right: 30px; }
+
+    .pill-card {
+      display: flex;
+      align-items: center;
+      background: rgba(18, 18, 18, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-left: 6px solid #FF8C00; /* SSTV BRAND ORANGE */
+      border-radius: 14px;
+      padding: 14px 22px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+      gap: 20px;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* Flash animation when a new ticket is issued */
+    .pill-card.flash {
+      transform: scale(1.05);
+      border-color: #FF8C00;
+      box-shadow: 0 0 28px rgba(255, 140, 0, 0.65);
+    }
+
+    .pill-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 2px solid rgba(255, 255, 255, 0.15);
+      padding-right: 20px;
+    }
+
+    .status-badge {
+      align-self: flex-start;
+      font-size: 0.65em;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      margin-bottom: 6px;
+      background: rgba(255, 140, 0, 0.2);
+      color: #FF8C00;
+      border: 1px solid rgba(255, 140, 0, 0.6);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .title {
+      font-size: 1.25em;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .subtitle {
+      font-size: 0.72em;
+      color: #b0b0b0;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .pill-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+    }
+
+    .counter-label {
+      font-size: 0.6em;
+      text-transform: uppercase;
+      font-weight: 900;
+      color: #b0b0b0;
+      letter-spacing: 0.8px;
+      margin-bottom: 2px;
+    }
+
+    .counter-val {
+      font-size: 2.3em;
+      font-weight: 900;
+      line-height: 1;
+      color: #FF8C00;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <div id="pillAnchor">
+    <div class="pill-card" id="pillCard">
+      <div class="pill-left">
+        <span class="status-badge">SSTV Enforcement</span>
+        <div class="title">TAIL LIGHT TICKETS</div>
+        <div class="subtitle">Logo Light Violations</div>
+      </div>
+      <div class="pill-right">
+        <span class="counter-label">Issued</span>
+        <span class="counter-val" id="ticketCount">00</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Apply position from URL parameter (?pos=top-right, bottom-left, bottom-right)
+    const params = new URLSearchParams(window.location.search);
+    const pos = params.get('pos');
+    if (pos) {
+      document.getElementById('pillAnchor').classList.add(pos);
+    }
+
+    const socket = io();
+    const countEl = document.getElementById('ticketCount');
+    const cardEl = document.getElementById('pillCard');
+
+    socket.on('ticketUpdate', (data) => {
+      // Format single digits with a leading zero (00, 01, 02...)
+      countEl.textContent = String(data.count).padStart(2, '0');
+
+      if (data.action === 'add') {
+        cardEl.classList.remove('flash');
+        void cardEl.offsetWidth; // Trigger reflow for repeat flashes
+        cardEl.classList.add('flash');
+        setTimeout(() => cardEl.classList.remove('flash'), 700);
+      }
+    });
+  </script>
+</body>
+</html>
